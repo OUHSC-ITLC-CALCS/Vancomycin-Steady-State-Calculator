@@ -90,8 +90,7 @@
       border-radius: 3px;
     }
 
-    .results-table, 
-    .dose-times-table {
+    .results-table {
       margin-top: 15px; 
       border: 1px solid #ccc; 
       border-collapse: collapse;
@@ -99,20 +98,14 @@
       max-width: 450px;
     }
     .results-table th, 
-    .results-table td,
-    .dose-times-table th, 
-    .dose-times-table td {
+    .results-table td {
       border: 1px solid #ccc; 
       padding: 6px; 
       text-align: left;
     }
-    .results-table th, 
-    .dose-times-table th {
+    .results-table th {
       background-color: #f9f9f9; 
       text-align: center;
-    }
-    .dose-times-table th {
-      background-color: #f0f0f0;
     }
 
     .footer-note-fixed {
@@ -129,8 +122,7 @@
     }
     @media (max-width: 600px) {
       label { width: 100px; }
-      .results-table th, .results-table td,
-      .dose-times-table th, .dose-times-table td {
+      .results-table th, .results-table td {
         font-size: 0.85rem;
       }
     }
@@ -208,23 +200,11 @@
 
     /*
       Convert [hh, mm] to decimal hours (e.g. [9,30] => 9.5).
-      This helps us shift the repeated-dose model on the X-axis.
+      We'll still do it for some calculations, but the chart x-axis
+      now simply goes 0..(tau*intervals).
     */
     function toDecimalHours(h, m) {
       return h + (m / 60);
-    }
-
-    // Add one hour to [hh, mm]
-    function addOneHour(hh, mm) {
-      mm += 60; // add 60 minutes
-      if (mm >= 60) {
-        hh += Math.floor(mm / 60);
-        mm = mm % 60;
-      }
-      if (hh > 23) { // clamp if needed
-        hh = 23; mm = 59;
-      }
-      return [hh, mm];
     }
 
     // Format [h,m] to "HH:MM"
@@ -272,33 +252,6 @@
                 <tr><td>Cpmax predicted (mg/L)</td><td id="resCpmaxPred"></td></tr>
                 <tr><td>Cpmin predicted (mg/L)</td><td id="resCpminPred"></td></tr>
                 <tr><td colspan="2" id="resRecommendation" style="font-weight:bold; text-align:center;"></td></tr>
-              </tbody>
-            </table>
-
-            <!-- DOSE TIMES TABLE -->
-            <table class="dose-times-table" id="doseTimesTable">
-              <thead>
-                <tr><th colspan="4">Dosing Times</th></tr>
-                <tr>
-                  <th>Dose #</th>
-                  <th>Admin Time</th>
-                  <th>Cpmax True</th>
-                  <th>Cpmax Observed</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Dose 1</td>
-                  <td id="dose1Admin"></td>
-                  <td id="dose1CpmaxTrue"></td>
-                  <td id="dose1CpmaxObs"></td>
-                </tr>
-                <tr>
-                  <td>Dose 2</td>
-                  <td id="dose2Admin"></td>
-                  <td id="dose2CpmaxTrue"></td>
-                  <td id="dose2CpmaxObs"></td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -440,14 +393,6 @@
         const resCpminPred  = document.getElementById('resCpminPred');
         const resRecommend  = document.getElementById('resRecommendation');
 
-        // Dosing times output
-        const dose1AdminCell    = document.getElementById('dose1Admin');
-        const dose1CpmaxTrueCell= document.getElementById('dose1CpmaxTrue');
-        const dose1CpmaxObsCell = document.getElementById('dose1CpmaxObs');
-        const dose2AdminCell    = document.getElementById('dose2Admin');
-        const dose2CpmaxTrueCell= document.getElementById('dose2CpmaxTrue');
-        const dose2CpmaxObsCell = document.getElementById('dose2CpmaxObs');
-
         const calcBtn = document.getElementById('vancoCalcBtn');
 
         calcBtn.addEventListener('click', function() {
@@ -473,15 +418,11 @@
           // Compute time difference in "military" form; if negative or zero, adjust for midnight wrap-around
           let timeDiff = timeCpmin - timeCpmax;
           if (timeDiff <= 0) {
-            // For example, if cpMaxObs = 2300 and cpMinObs = 0800,
-            // then (0800 + 2400) - 2300 yields a 9-hour difference.
+            // e.g. if cpMaxObs = 2300, cpMinObs = 0800 => (0800 + 2400) - 2300 = 900 => 900/100=9 hr
             timeDiff = (timeCpmin + 2400) - timeCpmax;
           }
-
-          // Convert from e.g. 2100 - 1200 = 900 => 900/100 = 9 hours
-          timeDiff = timeDiff / 100;
-
-          const kel = Math.log((cpMaxObs || 1) / (cpMinObs || 1)) / timeDiff; // avoid ln(0)
+          timeDiff = timeDiff / 100; // convert "military" to hours
+          const kel = Math.log((cpMaxObs || 1) / (cpMinObs || 1)) / timeDiff;
 
           // 5) actual t1/2
           const actualTHalf = 0.693 / kel;
@@ -508,19 +449,47 @@
           // 10) CL
           const CL = Vd * (kel || 1);
 
-          // 11) MD
+          // 11) MD (initial guess)
           let mdNum = CL * (tInf || 1) * (cpMaxDes || 0) * (1 - Math.exp(-kel * newTau));
           let mdDen = (1 - Math.exp(-kel * (tInf || 1)));
           let rawMD = mdNum / (mdDen || 1);
           let finalMD = roundDoseTo250(rawMD);
 
-          // 12) cpMaxPred
+          // 12) cpMaxPred / cpMinPred (initial)
           let cpMaxPred = (finalMD / (CL * (tInf || 1))) 
                         * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
-          // 13) cpMinPred
           let cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
 
-          // 14) Recommendation
+          // -----------------------------------------------------------
+          // ENFORCE: cpMaxPred >= cpMaxDes and cpMinPred >= cpMinDes
+          // We'll scale up the dose if the predicted values are too low.
+          // We do a short loop so we don't get stuck in an infinite scenario.
+          // -----------------------------------------------------------
+          let iterationCount = 0;
+          while ((cpMaxPred < cpMaxDes || cpMinPred < cpMinDes) && iterationCount < 10) {
+            // figure out how much to scale the dose
+            const scaleNeededForCpmax = (cpMaxPred < cpMaxDes && cpMaxPred > 0)
+                                        ? (cpMaxDes / cpMaxPred)
+                                        : 1;
+            const scaleNeededForCpmin = (cpMinPred < cpMinDes && cpMinPred > 0)
+                                        ? (cpMinDes / cpMinPred)
+                                        : 1;
+            const scaleFactor = Math.max(scaleNeededForCpmax, scaleNeededForCpmin);
+
+            // re-calc rawMD and finalMD
+            rawMD *= scaleFactor;
+            finalMD = roundDoseTo250(rawMD);
+
+            // recalc predicted with the new dose
+            cpMaxPred = (finalMD / (CL * (tInf || 1))) 
+                        * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
+            cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
+
+            iterationCount++;
+          }
+          // -----------------------------------------------------------
+
+          // 14) Final Recommendation
           const recommendation = `Vancomycin ${finalMD} mg IV infusion over ${tInf} hr every ${newTau} hr.`;
 
           // Fill main results
@@ -539,71 +508,44 @@
           resCpminPred.textContent  = cpMinPred.toFixed(1);
           resRecommend.textContent  = recommendation;
 
-          // Handle dosing times (mil time)
-          const dose1Mil = parseInt(dose1TimeInput.value) || 0;
-          const dose2Mil = parseInt(dose2TimeInput.value) || 0;
-
-          // parse them into [hh, mm]
-          const [d1H, d1M] = parseMilTime(dose1Mil);
-          const [d2H, d2M] = parseMilTime(dose2Mil);
-
-          // cpMaxTrue => single value from the calc
-          const cpMaxTrueDisplay = cpMaxTrue.toFixed(1) + " mg/L";
-
-          // Cpmax Observed => adminTime + 1 hour
-          const [obs1H, obs1M] = addOneHour(d1H, d1M);
-          const [obs2H, obs2M] = addOneHour(d2H, d2M);
-
-          // Fill table
-          dose1AdminCell.textContent      = formatHHMM(d1H, d1M);
-          dose1CpmaxTrueCell.textContent  = cpMaxTrueDisplay;
-          dose1CpmaxObsCell.textContent   = formatHHMM(obs1H, obs1M);
-
-          dose2AdminCell.textContent      = formatHHMM(d2H, d2M);
-          dose2CpmaxTrueCell.textContent  = cpMaxTrueDisplay;
-          dose2CpmaxObsCell.textContent   = formatHHMM(obs2H, obs2M);
-
-          // SHIFT the repeated-dose model so first dose is at baseTime in decimal
-          const baseTime = toDecimalHours(d1H, d1M); // e.g. 9.0 => 09:00
+          // -------------------------
+          // FIXING THE X-AXIS
+          // -------------------------
           const intervals = parseFloat(numIntInput.value) || 0;
-          const totalTime = baseTime + newTau * intervals; 
-          const dt = 0.1;
+          const totalTime = newTau * intervals;
 
+          const dt = 0.1;
           let timePoints = [];
           let concPoints = [];
 
-          function repeatedDoseConcentration(local) {
-            // local = time - baseTime
-            const modt = local % newTau;
+          function repeatedDoseConcentration(time) {
+            const modt = time % newTau;
             if (modt <= (tInf || 1)) {
+              // Infusion phase
               const infNum = (finalMD / ((kel || 1) * Vd * (tInf || 1))) 
                              * (1 - Math.exp(-(kel || 1) * modt));
               const infDen = 1 - Math.exp(-(kel || 1) * newTau);
               return infNum / (infDen || 1);
             } else {
+              // Post-infusion elimination
               const infusionConc = (finalMD / ((kel || 1) * Vd * (tInf || 1))) 
                                    * (1 - Math.exp(-(kel || 1) * (tInf || 1)));
               const infDen = 1 - Math.exp(-(kel || 1) * newTau);
               const timeAfterInf = modt - (tInf || 1);
-              return ((infusionConc / (infDen || 1)) 
-                      * Math.exp(-(kel || 1) * timeAfterInf));
+              return (infusionConc / (infDen || 1)) * Math.exp(-(kel || 1) * timeAfterInf);
             }
           }
 
-          // from t=baseTime up to t=baseTime + newTau * intervals
-          for (let t = baseTime; t <= totalTime; t += dt) {
-            const local = t - baseTime; // local hours since first dose
-            const c = repeatedDoseConcentration(local);
-            timePoints.push(t.toFixed(2)); // "clock time" in decimal
+          for (let t = 0; t <= totalTime; t += dt) {
+            const c = repeatedDoseConcentration(t);
+            timePoints.push(t);
             concPoints.push(c);
           }
 
-          // Destroy old chart if present
           if (vancoChart !== null) {
             vancoChart.destroy();
           }
 
-          // Create the Chart
           const ctx = document.getElementById('vancoChartCanvas').getContext('2d');
           vancoChart = new Chart(ctx, {
             type: 'line',
@@ -626,11 +568,10 @@
                 x: {
                   title: {
                     display: true,
-                    text: 'Clock Time (hr)'
+                    text: 'Time (hr)'
                   },
-                  // Convert decimal hr => HH:MM
                   ticks: {
-                    callback: function(value, index, ticks) {
+                    callback: function(value) {
                       const numeric = parseFloat(value);
                       const h = Math.floor(numeric);
                       const m = Math.floor((numeric - h) * 60);
@@ -644,6 +585,10 @@
                   title: {
                     display: true,
                     text: 'Concentration (mg/L)'
+                  },
+                  beginAtZero: false,
+                  ticks: {
+                    stepSize: 1
                   }
                 }
               },
@@ -659,7 +604,6 @@
       }
     }
 
-    // Simple router
     window.addEventListener('hashchange', router);
     window.addEventListener('DOMContentLoaded', router);
     if (!window.location.hash) {
