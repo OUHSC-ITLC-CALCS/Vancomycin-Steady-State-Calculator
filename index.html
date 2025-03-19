@@ -2,8 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Viewport for mobile/desktop toggling -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vancomycin Calculator with Clock Times</title>
 
   <!-- Load Chart.js for the Vancomycin graph -->
@@ -45,15 +43,7 @@
     nav a.active {
       border-bottom: 2px solid var(--hospital-accent);
     }
-    #toggleDesktopBtn {
-      margin-left: auto; 
-      background: var(--white); 
-      color: var(--hospital-blue);
-      border: 1px solid var(--hospital-blue); 
-      padding: 4px 8px; 
-      border-radius: 3px;
-      cursor: pointer;
-    }
+   
 
     .calculator-container {
       background: var(--white);
@@ -120,19 +110,12 @@
       box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
       color: var(--text-color);
     }
-    @media (max-width: 600px) {
-      label { width: 100px; }
-      .results-table th, .results-table td {
-        font-size: 0.85rem;
-      }
-    }
   </style>
 </head>
 <body>
   <nav>
     <a href="#home" id="link-home">Home</a>
     <a href="#calcVanco" id="link-vanco">Vancomycin</a>
-    <button id="toggleDesktopBtn" onclick="toggleDesktopView()">Desktop View</button>
   </nav>
 
   <div class="calculator-container" id="calculator-container"></div>
@@ -142,17 +125,6 @@
   </div>
 
   <script>
-    /* Toggle Desktop/Mobile View */
-    function toggleDesktopView() {
-      const metaTag = document.querySelector('meta[name="viewport"]');
-      if (metaTag.getAttribute('content') === 'width=device-width, initial-scale=1.0') {
-        metaTag.setAttribute('content', 'width=1024');
-        document.getElementById('toggleDesktopBtn').textContent = "Mobile View";
-      } else {
-        metaTag.setAttribute('content', 'width=device-width, initial-scale=1.0');
-        document.getElementById('toggleDesktopBtn').textContent = "Desktop View";
-      }
-    }
 
     let vancoChart = null; // Chart.js instance
 
