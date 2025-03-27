@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <title>Vancomycin Calculator with Clock Times</title>
 
-  <!-- Load Chart.js for the Vancomycin graph -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     :root {
       --hospital-blue: #8B0000; 
@@ -43,8 +40,6 @@
     nav a.active {
       border-bottom: 2px solid var(--hospital-accent);
     }
-   
-
     .calculator-container {
       background: var(--white);
       margin: 20px auto; 
@@ -65,7 +60,6 @@
     }
     .calc-layout .left-col { flex: 1; }
     .calc-layout .right-col { flex: 1; }
-
     label {
       display: inline-block; 
       width: 160px;
@@ -79,7 +73,6 @@
       border: 1px solid #ccc; 
       border-radius: 3px;
     }
-
     .results-table {
       margin-top: 15px; 
       border: 1px solid #ccc; 
@@ -97,7 +90,6 @@
       background-color: #f9f9f9; 
       text-align: center;
     }
-
     .footer-note-fixed {
       position: fixed; 
       bottom: 0; 
@@ -114,7 +106,6 @@
 </head>
 <body>
   <nav>
-    <a href="#home" id="link-home">Home</a>
     <a href="#calcVanco" id="link-vanco">Vancomycin</a>
   </nav>
 
@@ -125,9 +116,6 @@
   </div>
 
   <script>
-
-    let vancoChart = null; // Chart.js instance
-
     // Allowed intervals to round new Tau to
     const ALLOWED_INTERVALS = [8, 10, 12, 18, 24, 32, 36, 48];
 
@@ -162,7 +150,7 @@
       if (val < 0) val = 0;
       if (val > 2400) val = 2400;
       const hours = Math.floor(val / 100);
-      let mins    = val % 100;
+      let mins = val % 100;
       if (mins > 59) {
         mins = 59;
       }
@@ -172,8 +160,6 @@
 
     /*
       Convert [hh, mm] to decimal hours (e.g. [9,30] => 9.5).
-      We'll still do it for some calculations, but the chart x-axis
-      now simply goes 0..(tau*intervals).
     */
     function toDecimalHours(h, m) {
       return h + (m / 60);
@@ -186,50 +172,13 @@
       return `${hh}:${mm}`;
     }
 
-    /* RENDER HOME */
-    function renderHome() {
-      return ` 
-        <h2>Welcome!</h2>
-        <p>Select "Vancomycin" from the navigation above.</p>
-        <p>This site helps you calculate vancomycin steady-state dosing using your provided equations 
-           and displays a dynamic concentration–time graph aligned with actual clock times.</p>
-      `;
-    }
-
     /* RENDER VANCO */
     function renderCalcVanco() {
       return ` 
         <h2>Vancomycin Steady-State Calculator</h2>
         <div class="calc-layout">
-          <!-- LEFT COLUMN: Graph + Results Table -->
+          <!-- LEFT COLUMN: Input Fields -->
           <div class="left-col">
-            <canvas id="vancoChartCanvas"></canvas>
-
-            <table class="results-table" id="resultsTable">
-              <thead>
-                <tr><th colspan="2">Results</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>CrCl (mL/min)</td><td id="resCrCl"></td></tr>
-                <tr><td>Population ke (1/hr)</td><td id="resPopKe"></td></tr>
-                <tr><td>Population t1/2 (hr)</td><td id="resPopHalfLife"></td></tr>
-                <tr><td>Actual kel (1/hr)</td><td id="resKel"></td></tr>
-                <tr><td>Actual t1/2 (hr)</td><td id="resHalfLife"></td></tr>
-                <tr><td>Cpmax true (mg/L)</td><td id="resCpmaxTrue"></td></tr>
-                <tr><td>Cpmin true (mg/L)</td><td id="resCpminTrue"></td></tr>
-                <tr><td>Vd (L)</td><td id="resVd"></td></tr>
-                <tr><td>New Tau (hr)</td><td id="resTau"></td></tr>
-                <tr><td>CL (L/hr)</td><td id="resCL"></td></tr>
-                <tr><td>New Dose (mg)</td><td id="resNewDose"></td></tr>
-                <tr><td>Cpmax predicted (mg/L)</td><td id="resCpmaxPred"></td></tr>
-                <tr><td>Cpmin predicted (mg/L)</td><td id="resCpminPred"></td></tr>
-                <tr><td colspan="2" id="resRecommendation" style="font-weight:bold; text-align:center;"></td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- RIGHT COLUMN: Input Fields -->
-          <div class="right-col">
             <div>
               <label for="vancoAge">Age (years):</label>
               <input type="number" id="vancoAge" value="0" />
@@ -287,12 +236,6 @@
               <input type="number" id="vancoDose" value="0" />
             </div>
             <div>
-              <label for="vancoNumIntervals"># Intervals (graph):</label>
-              <input type="number" id="vancoNumIntervals" value="0" />
-            </div>
-
-            <!-- Two admin times (mil time) -->
-            <div>
               <label for="dose1Time">Dose 1 Admin (military time):</label>
               <input type="number" id="dose1Time" value="0" />
             </div>
@@ -300,286 +243,181 @@
               <label for="dose2Time">Dose 2 Admin (military time):</label>
               <input type="number" id="dose2Time" value="0" />
             </div>
-
             <br />
             <button id="vancoCalcBtn">Calculate Vancomycin Dose</button>
+          </div>
+
+          <!-- RIGHT COLUMN: Results Table -->
+          <div class="right-col">
+            <table class="results-table" id="resultsTable">
+              <thead>
+                <tr><th colspan="2">Results</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>CrCl (mL/min)</td><td id="resCrCl"></td></tr>
+                <tr><td>Population ke (1/hr)</td><td id="resPopKe"></td></tr>
+                <tr><td>Population t1/2 (hr)</td><td id="resPopHalfLife"></td></tr>
+                <tr><td>Actual kel (1/hr)</td><td id="resKel"></td></tr>
+                <tr><td>Actual t1/2 (hr)</td><td id="resHalfLife"></td></tr>
+                <tr><td>Cpmax true (mg/L)</td><td id="resCpmaxTrue"></td></tr>
+                <tr><td>Cpmin true (mg/L)</td><td id="resCpminTrue"></td></tr>
+                <tr><td>Vd (L)</td><td id="resVd"></td></tr>
+                <tr><td>New Tau (hr)</td><td id="resTau"></td></tr>
+                <tr><td>CL (L/hr)</td><td id="resCL"></td></tr>
+                <tr><td>New Dose (mg)</td><td id="resNewDose"></td></tr>
+                <tr><td>Cpmax predicted (mg/L)</td><td id="resCpmaxPred"></td></tr>
+                <tr><td>Cpmin predicted (mg/L)</td><td id="resCpminPred"></td></tr>
+                <tr>
+                  <td colspan="2" id="resRecommendation" style="font-weight:bold; text-align:center;"></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       `;
     }
 
-    // Simple router
     function router() {
       const container = document.getElementById('calculator-container');
-      const hash = window.location.hash || '#home';
+      container.innerHTML = renderCalcVanco();
       document.querySelectorAll('nav a').forEach(link => link.classList.remove('active'));
-
-      let content = '';
-      switch (hash) {
-        case '#calcVanco':
-          content = renderCalcVanco();
-          document.getElementById('link-vanco').classList.add('active');
-          break;
-        default:
-          content = renderHome();
-          document.getElementById('link-home').classList.add('active');
-      }
-      container.innerHTML = content;
-      attachEventListeners(hash);
+      document.getElementById('link-vanco').classList.add('active');
+      attachEventListeners();
     }
 
-    function attachEventListeners(hash) {
-      if (hash === '#calcVanco') {
-        const ageInput        = document.getElementById('vancoAge');
-        const sexInput        = document.getElementById('vancoSex');
-        const heightInput     = document.getElementById('vancoHeight');
-        const weightInput     = document.getElementById('vancoWeight');
-        const sCrInput        = document.getElementById('vancoSCr');
-        const timeCpmaxObsInp = document.getElementById('timeCpmaxObs');
-        const timeCpminObsInp = document.getElementById('timeCpminObs');
-        const cpMaxObsInput   = document.getElementById('vancoCpMax');
-        const cpMinObsInput   = document.getElementById('vancoCpMin');
-        const cpMaxDesInput   = document.getElementById('vancoCpMaxDesired');
-        const cpMinDesInput   = document.getElementById('vancoCpMinDesired');
-        const intervalInput   = document.getElementById('vancoInterval');
-        const infTimeInput    = document.getElementById('vancoInfTime');
-        const doseInput       = document.getElementById('vancoDose');
-        const numIntInput     = document.getElementById('vancoNumIntervals');
+    function attachEventListeners() {
+      // Input fields
+      const ageInput = document.getElementById('vancoAge');
+      const sexInput = document.getElementById('vancoSex');
+      const heightInput = document.getElementById('vancoHeight');
+      const weightInput = document.getElementById('vancoWeight');
+      const sCrInput = document.getElementById('vancoSCr');
+      const timeCpmaxObsInp = document.getElementById('timeCpmaxObs');
+      const timeCpminObsInp = document.getElementById('timeCpminObs');
+      const cpMaxObsInput = document.getElementById('vancoCpMax');
+      const cpMinObsInput = document.getElementById('vancoCpMin');
+      const cpMaxDesInput = document.getElementById('vancoCpMaxDesired');
+      const cpMinDesInput = document.getElementById('vancoCpMinDesired');
+      const intervalInput = document.getElementById('vancoInterval');
+      const infTimeInput = document.getElementById('vancoInfTime');
+      const doseInput = document.getElementById('vancoDose');
+      const dose1TimeInput = document.getElementById('dose1Time');
+      const dose2TimeInput = document.getElementById('dose2Time');
 
-        const dose1TimeInput  = document.getElementById('dose1Time');
-        const dose2TimeInput  = document.getElementById('dose2Time');
+      // Results elements
+      const resCrCl = document.getElementById('resCrCl');
+      const resPopKe = document.getElementById('resPopKe');
+      const resPopHalfLife = document.getElementById('resPopHalfLife');
+      const resKel = document.getElementById('resKel');
+      const resHalfLife = document.getElementById('resHalfLife');
+      const resCpmaxTrue = document.getElementById('resCpmaxTrue');
+      const resCpminTrue = document.getElementById('resCpminTrue');
+      const resVd = document.getElementById('resVd');
+      const resTau = document.getElementById('resTau');
+      const resCL = document.getElementById('resCL');
+      const resMD = document.getElementById('resNewDose');
+      const resCpmaxPred = document.getElementById('resCpmaxPred');
+      const resCpminPred = document.getElementById('resCpminPred');
+      const resRecommend = document.getElementById('resRecommendation');
 
-        // Results
-        const resCrCl       = document.getElementById('resCrCl');
-        const resPopKe      = document.getElementById('resPopKe');
-        const resPopHalfLife= document.getElementById('resPopHalfLife');
-        const resKel        = document.getElementById('resKel');
-        const resHalfLife   = document.getElementById('resHalfLife');
-        const resCpmaxTrue  = document.getElementById('resCpmaxTrue');
-        const resCpminTrue  = document.getElementById('resCpminTrue');
-        const resVd         = document.getElementById('resVd');
-        const resTau        = document.getElementById('resTau');
-        const resCL         = document.getElementById('resCL');
-        const resMD         = document.getElementById('resNewDose');
-        const resCpmaxPred  = document.getElementById('resCpmaxPred');
-        const resCpminPred  = document.getElementById('resCpminPred');
-        const resRecommend  = document.getElementById('resRecommendation');
+      const calcBtn = document.getElementById('vancoCalcBtn');
 
-        const calcBtn = document.getElementById('vancoCalcBtn');
+      calcBtn.addEventListener('click', function() {
+        // 1) Calculate CrCl
+        const age = parseFloat(ageInput.value) || 0;
+        const sex = sexInput.value.trim().toUpperCase() || "0";
+        const weightKg = parseFloat(weightInput.value) || 0;
+        const sCr = parseFloat(sCrInput.value) || 0;
+        let crCl = ((140 - age) * weightKg) / (72 * (sCr || 1));
+        if (sex === 'F') crCl *= 0.85;
 
-        calcBtn.addEventListener('click', function() {
-          // 1) CrCl
-          const age = parseFloat(ageInput.value) || 0;
-          const sex = sexInput.value.trim().toUpperCase() || "0";
-          const weightKg = parseFloat(weightInput.value) || 0;
-          const sCr = parseFloat(sCrInput.value) || 0;
-          let crCl = ((140 - age) * weightKg) / (72 * (sCr || 1)); // avoid /0
-          if (sex === 'F') crCl *= 0.85;
+        // 2) Calculate popKe and popT1/2
+        const popKe = 0.00083 * crCl + 0.0044;
+        const popTHalf = 0.693 / popKe;
 
-          // 2) popKe
-          const popKe = 0.00083 * crCl + 0.0044;
-          // 3) popT1/2
-          const popTHalf = 0.693 / popKe;
+        // 3) Actual kel and time difference
+        const timeCpmax = parseFloat(timeCpmaxObsInp.value) || 0;
+        const timeCpmin = parseFloat(timeCpminObsInp.value) || 0;
+        const cpMaxObs = parseFloat(cpMaxObsInput.value) || 0;
+        const cpMinObs = parseFloat(cpMinObsInput.value) || 0;
+        let timeDiff = timeCpmin - timeCpmax;
+        if (timeDiff <= 0) {
+          timeDiff = (timeCpmin + 2400) - timeCpmax;
+        }
+        timeDiff = timeDiff / 100;
+        const kel = Math.log((cpMaxObs || 1) / (cpMinObs || 1)) / timeDiff;
+        const actualTHalf = 0.693 / kel;
 
-          // 4) actual Kel
-          const timeCpmax = parseFloat(timeCpmaxObsInp.value) || 0;
-          const timeCpmin = parseFloat(timeCpminObsInp.value) || 0;
-          const cpMaxObs  = parseFloat(cpMaxObsInput.value)  || 0;
-          const cpMinObs  = parseFloat(cpMinObsInput.value)  || 0;
+        // 4) Correct cpMax and cpMin for infusion time
+        const tInf = parseFloat(infTimeInput.value) || 0;
+        const cpMaxTrue = (cpMaxObs || 0) / Math.exp(-kel * tInf || 0);
+        const cpMinTrue = (cpMinObs || 0) * Math.exp(-kel * tInf || 0);
 
-          // Compute time difference in "military" form; if negative or zero, adjust for midnight wrap-around
-          let timeDiff = timeCpmin - timeCpmax;
-          if (timeDiff <= 0) {
-            // e.g. if cpMaxObs = 2300, cpMinObs = 0800 => (0800 + 2400) - 2300 = 900 => 900/100=9 hr
-            timeDiff = (timeCpmin + 2400) - timeCpmax;
-          }
-          timeDiff = timeDiff / 100; // convert "military" to hours
-          const kel = Math.log((cpMaxObs || 1) / (cpMinObs || 1)) / timeDiff;
+        // 5) Volume of distribution (Vd)
+        const currentDose = parseFloat(doseInput.value) || 0;
+        const numerator = (currentDose / (kel * (tInf || 1))) * (1 - Math.exp(-kel * (tInf || 1)));
+        const denominator = cpMaxTrue - (cpMinTrue * Math.exp(-kel * (tInf || 1)));
+        const Vd = numerator / (denominator || 1);
 
-          // 5) actual t1/2
-          const actualTHalf = 0.693 / kel;
+        // 6) Calculate new Tau based on desired peak and trough
+        const cpMaxDes = parseFloat(cpMaxDesInput.value) || 0;
+        const cpMinDes = parseFloat(cpMinDesInput.value) || 1;
+        const rawTau = (1 / (kel || 1)) * ln((cpMaxDes || 1) / (cpMinDes || 1)) + 1;
+        const newTau = roundTau(rawTau);
 
-          // 6) cpMaxTrue
-          const tInf = parseFloat(infTimeInput.value) || 0;
-          const cpMaxTrue = (cpMaxObs || 0) / Math.exp(-kel * tInf || 0);
+        // 7) Clearance and dose calculation
+        const CL = Vd * (kel || 1);
+        let mdNum = CL * (tInf || 1) * (cpMaxDes || 0) * (1 - Math.exp(-kel * newTau));
+        let mdDen = (1 - Math.exp(-kel * (tInf || 1)));
+        let rawMD = mdNum / (mdDen || 1);
+        let finalMD = roundDoseTo250(rawMD);
 
-          // 7) cpMinTrue
-          const cpMinTrue = (cpMinObs || 0) * Math.exp(-kel * tInf || 0);
+        // 8) Predicted concentrations
+        let cpMaxPred = (finalMD / (CL * (tInf || 1))) 
+                      * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
+        let cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
 
-          // 8) Vd
-          const currentDose = parseFloat(doseInput.value) || 0;
-          const numerator = (currentDose / (kel * (tInf || 1))) * (1 - Math.exp(-kel * (tInf || 1)));
-          const denominator = cpMaxTrue - (cpMinTrue * Math.exp(-kel * (tInf || 1)));
-          const Vd = numerator / (denominator || 1); // avoid /0
+        // 9) Adjust dose if needed
+        let iterationCount = 0;
+        while ((cpMaxPred < cpMaxDes || cpMinPred < cpMinDes) && iterationCount < 10) {
+          const scaleNeededForCpmax = (cpMaxPred < cpMaxDes && cpMaxPred > 0)
+                                      ? (cpMaxDes / cpMaxPred)
+                                      : 1;
+          const scaleNeededForCpmin = (cpMinPred < cpMinDes && cpMinPred > 0)
+                                      ? (cpMinDes / cpMinPred)
+                                      : 1;
+          const scaleFactor = Math.max(scaleNeededForCpmax, scaleNeededForCpmin);
+          rawMD *= scaleFactor;
+          finalMD = roundDoseTo250(rawMD);
+          cpMaxPred = (finalMD / (CL * (tInf || 1))) 
+                      * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
+          cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
+          iterationCount++;
+        }
+        const recommendation = `Vancomycin ${finalMD} mg IV infusion over ${tInf} hr every ${newTau} hr.`;
 
-          // 9) new Tau
-          const cpMaxDes = parseFloat(cpMaxDesInput.value) || 0;
-          const cpMinDes = parseFloat(cpMinDesInput.value) || 1; // avoid ln(0)
-          const rawTau = (1 / (kel || 1)) * ln((cpMaxDes || 1) / (cpMinDes || 1)) + 1;
-          const newTau = roundTau(rawTau);
-
-          // 10) CL
-          const CL = Vd * (kel || 1);
-
-          // 11) MD (initial guess)
-          let mdNum = CL * (tInf || 1) * (cpMaxDes || 0) * (1 - Math.exp(-kel * newTau));
-          let mdDen = (1 - Math.exp(-kel * (tInf || 1)));
-          let rawMD = mdNum / (mdDen || 1);
-          let finalMD = roundDoseTo250(rawMD);
-
-          // 12) cpMaxPred / cpMinPred (initial)
-          let cpMaxPred = (finalMD / (CL * (tInf || 1))) 
-                        * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
-          let cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
-
-          // -----------------------------------------------------------
-          // ENFORCE: cpMaxPred >= cpMaxDes and cpMinPred >= cpMinDes
-          // We'll scale up the dose if the predicted values are too low.
-          // We do a short loop so we don't get stuck in an infinite scenario.
-          // -----------------------------------------------------------
-          let iterationCount = 0;
-          while ((cpMaxPred < cpMaxDes || cpMinPred < cpMinDes) && iterationCount < 10) {
-            // figure out how much to scale the dose
-            const scaleNeededForCpmax = (cpMaxPred < cpMaxDes && cpMaxPred > 0)
-                                        ? (cpMaxDes / cpMaxPred)
-                                        : 1;
-            const scaleNeededForCpmin = (cpMinPred < cpMinDes && cpMinPred > 0)
-                                        ? (cpMinDes / cpMinPred)
-                                        : 1;
-            const scaleFactor = Math.max(scaleNeededForCpmax, scaleNeededForCpmin);
-
-            // re-calc rawMD and finalMD
-            rawMD *= scaleFactor;
-            finalMD = roundDoseTo250(rawMD);
-
-            // recalc predicted with the new dose
-            cpMaxPred = (finalMD / (CL * (tInf || 1))) 
-                        * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
-            cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
-
-            iterationCount++;
-          }
-          // -----------------------------------------------------------
-
-          // 14) Final Recommendation
-          const recommendation = `Vancomycin ${finalMD} mg IV infusion over ${tInf} hr every ${newTau} hr.`;
-
-          // Fill main results
-          resCrCl.textContent       = crCl.toFixed(1);
-          resPopKe.textContent      = popKe.toFixed(4);
-          resPopHalfLife.textContent= popTHalf.toFixed(2);
-          resKel.textContent        = kel.toFixed(4);
-          resHalfLife.textContent   = actualTHalf.toFixed(2);
-          resCpmaxTrue.textContent  = cpMaxTrue.toFixed(1);
-          resCpminTrue.textContent  = cpMinTrue.toFixed(1);
-          resVd.textContent         = Vd.toFixed(2);
-          resTau.textContent        = newTau.toString();
-          resCL.textContent         = CL.toFixed(2);
-          resMD.textContent         = finalMD.toString();
-          resCpmaxPred.textContent  = cpMaxPred.toFixed(1);
-          resCpminPred.textContent  = cpMinPred.toFixed(1);
-          resRecommend.textContent  = recommendation;
-
-          // -------------------------
-          // FIXING THE X-AXIS
-          // -------------------------
-          const intervals = parseFloat(numIntInput.value) || 0;
-          const totalTime = newTau * intervals;
-
-          const dt = 0.1;
-          let timePoints = [];
-          let concPoints = [];
-
-          function repeatedDoseConcentration(time) {
-            const modt = time % newTau;
-            if (modt <= (tInf || 1)) {
-              // Infusion phase
-              const infNum = (finalMD / ((kel || 1) * Vd * (tInf || 1))) 
-                             * (1 - Math.exp(-(kel || 1) * modt));
-              const infDen = 1 - Math.exp(-(kel || 1) * newTau);
-              return infNum / (infDen || 1);
-            } else {
-              // Post-infusion elimination
-              const infusionConc = (finalMD / ((kel || 1) * Vd * (tInf || 1))) 
-                                   * (1 - Math.exp(-(kel || 1) * (tInf || 1)));
-              const infDen = 1 - Math.exp(-(kel || 1) * newTau);
-              const timeAfterInf = modt - (tInf || 1);
-              return (infusionConc / (infDen || 1)) * Math.exp(-(kel || 1) * timeAfterInf);
-            }
-          }
-
-          for (let t = 0; t <= totalTime; t += dt) {
-            const c = repeatedDoseConcentration(t);
-            timePoints.push(t);
-            concPoints.push(c);
-          }
-
-          if (vancoChart !== null) {
-            vancoChart.destroy();
-          }
-
-          const ctx = document.getElementById('vancoChartCanvas').getContext('2d');
-          vancoChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: timePoints,
-              datasets: [{
-                label: 'Vancomycin Conc (mg/L)',
-                data: concPoints,
-                borderColor: 'rgba(139,0,0,1)',
-                backgroundColor: 'rgba(139,0,0,0.1)',
-                fill: true,
-                tension: 0.2,
-                pointRadius: 2,
-                pointHoverRadius: 5
-              }]
-            },
-            options: {
-              responsive: true,
-              scales: {
-                x: {
-                  title: {
-                    display: true,
-                    text: 'Time (hr)'
-                  },
-                  ticks: {
-                    callback: function(value) {
-                      const numeric = parseFloat(value);
-                      const h = Math.floor(numeric);
-                      const m = Math.floor((numeric - h) * 60);
-                      const hh = (h < 10) ? `0${h}` : `${h}`;
-                      const mm = (m < 10) ? `0${m}` : `${m}`;
-                      return `${hh}:${mm}`;
-                    }
-                  }
-                },
-                y: {
-                  title: {
-                    display: true,
-                    text: 'Concentration (mg/L)'
-                  },
-                  beginAtZero: false,
-                  ticks: {
-                    stepSize: 1
-                  }
-                }
-              },
-              plugins: {
-                title: {
-                  display: true,
-                  text: `CrCl=${crCl.toFixed(1)} | ke=${kel.toFixed(4)} | Vd=${Vd.toFixed(2)}`
-                }
-              }
-            }
-          });
-        });
-      }
+        // 10) Update results in the table
+        resCrCl.textContent = crCl.toFixed(1);
+        resPopKe.textContent = popKe.toFixed(4);
+        resPopHalfLife.textContent = popTHalf.toFixed(2);
+        resKel.textContent = kel.toFixed(4);
+        resHalfLife.textContent = actualTHalf.toFixed(2);
+        resCpmaxTrue.textContent = cpMaxTrue.toFixed(1);
+        resCpminTrue.textContent = cpMinTrue.toFixed(1);
+        resVd.textContent = Vd.toFixed(2);
+        resTau.textContent = newTau.toString();
+        resCL.textContent = CL.toFixed(2);
+        resMD.textContent = finalMD.toString();
+        resCpmaxPred.textContent = cpMaxPred.toFixed(1);
+        resCpminPred.textContent = cpMinPred.toFixed(1);
+        resRecommend.textContent = recommendation;
+      });
     }
 
     window.addEventListener('hashchange', router);
     window.addEventListener('DOMContentLoaded', router);
-    if (!window.location.hash) {
-      window.location.hash = '#home';
+    if (!window.location.hash || window.location.hash === '#home') {
+      window.location.hash = '#calcVanco';
     }
     router();
   </script>
