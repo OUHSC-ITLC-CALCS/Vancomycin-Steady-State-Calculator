@@ -375,7 +375,7 @@
         // 8) Predicted concentrations
         let cpMaxPred = (finalMD / (CL * (tInf || 1))) 
                       * ((1 - Math.exp(-kel * (tInf || 1))) / (1 - Math.exp(-kel * newTau) || 1));
-        let cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf || 1)));
+        let cpMinPred = cpMaxPred * Math.exp(-kel * (newTau - (tInf - 1)));
 
         // 9) Adjust dose if needed
         let iterationCount = 0;
